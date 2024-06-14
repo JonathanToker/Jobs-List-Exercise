@@ -1,0 +1,25 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.container {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.inner-container {
+  background-color: #313131;
+  margin-block: 0.5rem;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.main-title {
+  font-size: xx-large;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: rgb(241, 152, 27);
+}
