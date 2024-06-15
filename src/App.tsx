@@ -5,7 +5,7 @@ import "./App.css";
 function App() {
   const [jobsIds, setJobsIds] = useState<number[]>([]);
   const [jobsDetails, setJobsDetails] = useState<unknown[]>([]);
-  const [itemsCount, setItemsCount] = useState<[number, number]>([0, 4]);
+  const [itemsCount, setItemsCount] = useState(0);
   const fetchJobIds = async () => {
     try {
       const res = await fetch(
@@ -16,62 +16,72 @@ function App() {
       }
       const data = await res.json();
       setJobsIds(data);
+      const slicedIds = data.slice(itemsCount * 4, itemsCount * 4 + 4);
+      fetchJobsDetails(slicedIds);
     } catch (error) {
       console.error("Failed to fetch jobs ids", error);
     }
   };
-  const fetchRange = async (range: [number, number]) => {
-    const promises: Promise<unknown>[] = [];
-    const newJobsDetails: unknown[] = [];
-    for (let i = range[0]; i < range[1]; i++) {
-      if (jobsIds.length > i) {
-        const jobDetails = fetch(
-          `https://hacker-news.firebaseio.com/v0/item/${jobsIds[i]}.json`
-        )
-          .then((res) => res.json())
-          .then((data) => newJobsDetails.push(data));
-        promises.push(jobDetails);
-      }
-    }
+  const fetchJobsDetails = async (ids: number[]) => {
     try {
-      await Promise.all(promises);
-      return newJobsDetails;
+      const responsesArr = await Promise.all(
+        ids.map((id) =>
+          fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)
+        )
+      );
+      const jobsInfoArr = await Promise.all(
+        responsesArr.map((res) => res.json())
+      );
+      if (jobsDetails.length > 0) {
+        setJobsDetails((prev) => [...prev, ...jobsInfoArr]);
+      } else {
+        setJobsDetails(jobsInfoArr);
+      }
     } catch (error) {
-      console.error("Failed fetching all data:", error);
-      return [];
+      console.error("failed to get jobs info:", error);
     }
   };
   useEffect(() => {
     fetchJobIds();
   }, []);
   useEffect(() => {
-    if (jobsIds.length > 0) {
-      fetchRange(itemsCount)
-        .then((resultsArr) =>
-          setJobsDetails((prev) => [...prev, ...resultsArr])
-        )
-        .catch((error) => console.error("failed to make fetchRange:", error));
-    }
-  }, [jobsIds, itemsCount]);
-  console.log(jobsDetails);
+    const slicedIds = jobsIds.slice(itemsCount * 4, itemsCount * 4 + 4);
+    fetchJobsDetails(slicedIds);
+  }, [itemsCount]);
   const loadMore = () => {
-    setItemsCount((prev) => [prev[1], prev[1] + 4]);
+    setItemsCount((prev) => prev + 1);
   };
+  console.log(jobsDetails);
   return (
     <>
       <div className="container">
         <h1 className="main-title">Hacker News Jobs Board</h1>
-        {jobsDetails.map((job, index) => {
-          return (
-            <div className="inner-container" key={index}>
-              <h1>By {job.by}</h1>
-              <p>{job.title}</p>
-              <a href={`${job.url}`} target="_blank">
-                By Company X, Date, Time
-              </a>
+        {jobsDetails.length > 0 ? (
+          jobsDetails.map((job, index) => {
+            return (
+              <div className="inner-container" key={index}>
+                <h1>By {job.by}</h1>
+                <p>{job.title}</p>
+                <a href={`${job.url}`} target="_blank">
+                  By Company X, Date, Time
+                </a>
+              </div>
+            );
+          })
+        ) : (
+          <div className="loader-wrapper">
+            <div className="lds-roller">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
             </div>
-          );
-        })}
+          </div>
+        )}
         <button onClick={loadMore}>Load More</button>
       </div>
     </>
